@@ -1,3 +1,4 @@
+import 'dart:io'; // Import the dart:io package
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -32,6 +33,8 @@ class CameraScreen extends StatefulWidget {
 class _CameraScreenState extends State<CameraScreen> {
   late CameraController _controller;
   bool _isCameraInitialized = false;
+  String _imagePath =
+      ''; // Initialize with an empty string to avoid LateInitializationError
 
   @override
   void initState() {
@@ -53,6 +56,24 @@ class _CameraScreenState extends State<CameraScreen> {
     });
   }
 
+  Future<void> _takePicture() async {
+    final XFile file = await _controller.takePicture();
+    setState(() {
+      _imagePath = file.path; // Save the image path
+    });
+  }
+
+  Future<void> _pickImageFromGallery() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? pickedFile =
+        await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _imagePath = pickedFile.path; // Save the image path
+      });
+    }
+  }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -62,10 +83,33 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Camera App")),
-      body: _isCameraInitialized
-          ? CameraPreview(_controller)
-          : const Center(child: CircularProgressIndicator()),
+      appBar: AppBar(title: const Text("Camera & Gallery App")),
+      body: Column(
+        children: [
+          // Display either the camera preview or the selected image
+          _imagePath.isNotEmpty
+              ? Image.file(File(_imagePath)) // Correct usage of File
+              : _isCameraInitialized
+                  ? CameraPreview(_controller)
+                  : const Center(child: CircularProgressIndicator()),
+
+          // Row of buttons to select image or open camera
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: _pickImageFromGallery,
+                child: const Text("Pick Image from Gallery"),
+              ),
+              const SizedBox(width: 20),
+              ElevatedButton(
+                onPressed: _takePicture,
+                child: const Text("Open Camera"),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
